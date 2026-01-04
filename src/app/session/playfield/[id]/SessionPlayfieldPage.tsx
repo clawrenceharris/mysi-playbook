@@ -27,12 +27,20 @@ interface SessionPlayfieldPageProps {
 export default function SessionPlayfieldPage({
   id,
 }: SessionPlayfieldPageProps) {
-  const { session, isLoading: sessionLoading } = useSession(id);
+  const { session, error, isLoading: sessionLoading } = useSession(id);
   if (sessionLoading) {
     return <LoadingState />;
   }
-  if (!session) {
-    return <ErrorState variant="card" message="No session found." />;
+
+  if (error || !session) {
+    return (
+      <main>
+        <ErrorState
+          variant="card"
+          message="Failed to find this session. Please come back later and try again."
+        />
+      </main>
+    );
   }
   return (
     <SessionCallProvider session={session}>

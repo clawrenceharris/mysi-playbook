@@ -10,6 +10,7 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
   useEffect(() => {
     const {
       data: { subscription },
@@ -70,6 +71,7 @@ export function useAuth() {
   const login = useCallback(
     async (data: LoginFormInput): Promise<User | null> => {
       try {
+        setIsLoading(true);
         const { email, password } = data;
         const {
           data: { user },
@@ -82,6 +84,8 @@ export function useAuth() {
       } catch (error) {
         setError(getUserErrorMessage(error));
         throw error;
+      } finally {
+        setIsLoading(false);
       }
     },
     []
@@ -132,7 +136,6 @@ export function useAuth() {
     }
   }, []);
 
-  // Clear error state
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -140,16 +143,12 @@ export function useAuth() {
   // Check if user is authenticated
   const isAuthenticated = user !== null;
 
-  // Check if user has verified email
-
   return {
-    // State
     user,
     isLoading,
     error,
     isAuthenticated,
 
-    // Actions
     signup,
     login,
     signOut,

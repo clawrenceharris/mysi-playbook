@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Component Documentation Check",
+  "description": "Validates and ensures documentation is present in functional component files following the project's documentation standards: document why something exists or how it fits into system flow, skip comments that restate code, prioritize side effects, domain logic, and non-obvious interactions",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "src/**/*.tsx",
+      "src/**/*.jsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the saved functional component file and ensure it follows the project's documentation standards:\n\n1. Check if documentation is needed:\n   - Does it contain non-trivial logic, algorithms, or complex side effects?\n   - Does it depend on external systems (Stream Video SDK, Supabase, real-time sync)?\n   - Does it implement domain-specific reasoning (Playfield, Playground, Supabase, Stream interactions)?\n   - Does it use non-standard patterns (custom state machines, middleware, reactive pipelines)?\n   - Could the naming be ambiguous to new developers?\n\n2. If documentation is needed, verify it:\n   - Describes WHY, not WHAT (design rationale, behavior flow)\n   - Is at file-level or function-level, not line-by-line\n   - Uses docstrings/headers format\n   - Explains side effects, domain logic, and non-obvious interactions\n\n3. If documentation exists but shouldn't:\n   - Remove comments that restate what code already makes clear\n   - Remove documentation for simple CRUD operations, basic React components, or utilities\n   - Remove documentation for UI layout or atomic utilities\n\n4. Provide specific suggestions for:\n   - Missing documentation where needed\n   - Unnecessary documentation to remove\n   - Improvements to existing documentation\n\nOutput your analysis and any recommended changes to align with the documentation standards."
+  }
+}

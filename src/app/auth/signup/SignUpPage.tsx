@@ -2,10 +2,10 @@
 import { useRouter } from "next/navigation";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormLayout } from "@/components/layouts";
+import { FormLayout } from "@/components/form";
 import { SignUpFormInput, signUpSchema } from "@/features/auth/domain";
-import { SignUpForm } from "@/features/auth/components";
 import { useAuth } from "@/features/auth/hooks";
+import { SignUpForm } from "@/components/features/auth";
 
 export default function SignUpPage() {
   const router = useRouter();

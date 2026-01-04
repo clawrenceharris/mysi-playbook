@@ -8,34 +8,34 @@ import {
   CardHeader,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { LessonCards } from "@/types/tables";
+import { PlaybookStrategies } from "@/types/tables";
 import { getCardBackgroundColor, getCardIcon } from "@/utils";
 
 interface VirtualStrategyCardProps {
-  strategy: LessonCards;
+  strategy: PlaybookStrategies;
   onAction?: () => void;
   description?: string;
   actionLabel?: string;
   showsDescription?: boolean;
 }
 
-export default function VirtualStrategyCard({
+export const VirtualStrategyCard = ({
   strategy,
   actionLabel,
   description,
   showsDescription = true,
   onAction,
-}: VirtualStrategyCardProps) {
+}: VirtualStrategyCardProps) => {
   return (
     <Card className="strategy-card flex-1 p-0 relative rounded-2xl border border-border shadow-md bg-card text-card-foreground transition-transform">
       <CardHeader
         className={cn(
           `flex relative text-background items-center p-3 gap-6 rounded-tl-2xl rounded-tr-2xl`,
-          `${getCardBackgroundColor(strategy.position)}`
+          `${getCardBackgroundColor(strategy.phase)}`
         )}
       >
         <div className="min-w-[40px] min-h-[40px] bg-foreground/20 rounded-full flex items-center justify-center">
-          {getCardIcon(strategy.position)}
+          {getCardIcon(strategy.phase)}
         </div>
         <div className="w-full">
           <div>
@@ -43,11 +43,7 @@ export default function VirtualStrategyCard({
           </div>
           <div className="flex items-center  justify-between">
             <span className="uppercase font-light text-background/70 text-sm">
-              {strategy.position === 0
-                ? "warmup"
-                : strategy.position === 1
-                ? "workout"
-                : "closer"}
+              {strategy.phase}
             </span>
           </div>
         </div>
@@ -68,4 +64,4 @@ export default function VirtualStrategyCard({
       )}
     </Card>
   );
-}
+};

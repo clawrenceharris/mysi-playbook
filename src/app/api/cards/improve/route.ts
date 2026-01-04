@@ -5,7 +5,7 @@ import { openai } from "@/lib/openai/client";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
-  const { lessonCardId } = await req.json();
+  const { strategyId } = await req.json();
   const client = await createClient();
   const {
     data: { user },
@@ -15,9 +15,9 @@ export async function POST(req: NextRequest) {
   }
   // Load card copy
   const { data: card, error } = await client
-    .from("lesson_cards")
+    .from("playbook_strategies")
     .select("id, steps, title")
-    .eq("id", lessonCardId)
+    .eq("id", strategyId)
     .single();
   if (error)
     return NextResponse.json(
@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
     steps: string[];
   };
   const { error: up } = await client
-    .from("lesson_cards")
+    .from("playbook_strategies")
     .update({ steps: out.steps })
-    .eq("id", lessonCardId);
+    .eq("id", strategyId);
   if (up)
     return NextResponse.json({ error: up.message + " Error" }, { status: 500 });
 

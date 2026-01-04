@@ -9,20 +9,20 @@ import {
   useContext,
   createContext,
 } from "react";
-import { PlaybookContext, PlaybookDefinition } from "@/types/playbook";
+import type { PlayfieldContext, PlayfieldDefinition } from "@/types/playbook";
 import { CustomVideoEvent } from "@stream-io/video-react-sdk";
-import { registry } from "@/activities/registry";
+import { getAllActivities } from "@/activities/registry";
 import { toast } from "sonner";
-import { LessonCards } from "@/types/tables";
+import { PlaybookStrategies } from "@/types/tables";
 import { usePlayfieldLayout, UsePlayfieldLayoutReturn } from "@/hooks";
 import { useSessionCall } from "./SessionCallProvider";
 
 interface PlayfieldContextType {
-  strategy: PlaybookDefinition | null;
-  ctx: PlaybookContext;
+  strategy: PlayfieldDefinition | null;
+  ctx: PlayfieldContext;
   isLoading: boolean;
   reactions: { id: string; userId: string; emoji: string }[];
-  startStrategy: (strategy: LessonCards) => void;
+  startStrategy: (strategy: PlaybookStrategies) => void;
   endStrategy: () => void;
   handleReaction: (emoji: string, userId: string) => void;
   syncLocal: () => void;
@@ -35,8 +35,8 @@ interface PlayfieldProviderProps {
 
 function PlayfieldProvider({ children }: PlayfieldProviderProps) {
   const { activeCall: call } = useSessionCall();
-  const [strategy, setStrategy] = useState<PlaybookDefinition | null>(null);
-  const [position, setPosition] = useState<number>(0);
+  const [strategy, setStrategy] = useState<PlayfieldDefinition | null>(null);
+  const [phase, setPhase] = useState<PlaybookStrategies["phase"]>("warmup");
   const [state, setState] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
   const layout = usePlayfieldLayout();
@@ -50,17 +50,18 @@ function PlayfieldProvider({ children }: PlayfieldProviderProps) {
   //---- Strategy State -----//
 
   const startStrategy = useCallback(
-    async (strategy: LessonCards) => {
-      const strategyDefinition = registry[strategy.card_slug];
+    async (strategy: PlaybookStrategies) => {
+      const allActivities = getAllActivities();
+      const strategyDefinition = allActivities[strategy.slug];
 
       try {
         if (!strategyDefinition)
           throw new Error("This strategy could not be found");
 
         setIsLoading(true);
-        setPosition(strategy.position);
+        setPhase(strategy.phase);
 
-        await call.sendCustomEvent({ type: `${strategy.card_slug}:start` });
+        await call.sendCustomEvent({ type: `${strategy.slug}:start` });
 
         setIsLoading(false);
       } catch (error) {
@@ -99,13 +100,15 @@ function PlayfieldProvider({ children }: PlayfieldProviderProps) {
   const ctx = useMemo(
     () =>
       ({
-        call,
-        userId: call?.currentUserId,
+        call: call,
+        userId: call.currentUserId,
         state,
-        position,
+        phase,
+        isHost: false,
+        slug: strategy?.slug,
         setState,
-      } as PlaybookContext),
-    [call, position, state]
+      } as unknown as PlayfieldContext),
+    [call, phase, state, strategy?.slug]
   );
 
   //----- Parsing events-----//
@@ -152,7 +155,8 @@ function PlayfieldProvider({ children }: PlayfieldProviderProps) {
     const slug = call.state.custom.strategySlug;
 
     const event = call.state.custom.currentEvent;
-    const strategyDefinition = registry[slug];
+    const allActivities = getAllActivities();
+    const strategyDefinition = allActivities[slug];
 
     if (!event || !strategyDefinition) return;
     setStrategy(strategyDefinition);
@@ -166,14 +170,15 @@ function PlayfieldProvider({ children }: PlayfieldProviderProps) {
   }, [call, syncLocal]);
 
   const handleEvent = useCallback(
-    (event: CustomVideoEvent, position: number) => {
+    (event: CustomVideoEvent, phase: PlaybookStrategies["phase"]) => {
       const type = parseEventType(event);
       const value = parseEventValue(event);
 
       switch (value) {
         case "start": {
-          const strategy = registry[type];
-          setPosition(position);
+          const allActivities = getAllActivities();
+          const strategy = allActivities[type];
+          setPhase(phase);
           setStrategy(strategy);
           break;
         }
@@ -195,19 +200,22 @@ function PlayfieldProvider({ children }: PlayfieldProviderProps) {
   );
 
   useEffect(() => {
-    const handler = (e: CustomVideoEvent, position: number) => {
+    const handler = (
+      e: CustomVideoEvent,
+      phase: PlaybookStrategies["phase"]
+    ) => {
       try {
         if (e.custom.roomId && e.custom.roomId !== ctx.state.roomId) return;
-        handleEvent(e, position);
+        handleEvent(e, phase);
       } catch (error) {
         toast("We could not complete this action.");
         console.error(error);
       }
     };
 
-    const unsubscribe = call.on("custom", (e) => handler(e, position));
+    const unsubscribe = call.on("custom", (e) => handler(e, phase));
     return () => unsubscribe();
-  }, [call, ctx.state.roomId, handleEvent, position, strategy]);
+  }, [call, ctx.state.roomId, handleEvent, phase, strategy]);
 
   const value = {
     strategy,

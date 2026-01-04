@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test File Validation",
+  "description": "Validates .test.ts files for type errors, missing imports, compilation errors, and linting issues when saved",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A test file has been saved. Please check the file for:\n1. TypeScript type errors\n2. Missing or incorrect imports\n3. Compilation errors\n4. ESLint/linting errors\n\nRun type checking and linting on the file. If there are any errors, fix them to ensure the test file compiles properly without errors. Report the results of the validation."
+  }
+}

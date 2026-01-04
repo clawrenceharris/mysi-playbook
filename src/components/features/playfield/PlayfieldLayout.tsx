@@ -7,10 +7,12 @@ import {
 } from "../video-calls";
 import { useCallStateHooks } from "@stream-io/video-react-sdk";
 import { PlayfieldExpanded, PlayfieldControlbar, PlayfieldSidebar } from "./";
+import { CompiledActivityErrorBoundary } from "./CompiledActivityErrorBoundary";
 import { useEffect, useState } from "react";
 
-import { LessonCards, Sessions } from "@/types/tables";
+import { PlaybookStrategies, Sessions } from "@/types/tables";
 import { usePlayfield, useSessionCall } from "@/providers";
+import { isCompiledActivity } from "@/activities/registry";
 
 interface PlayfieldLayoutProps {
   session: Sessions;
@@ -31,7 +33,7 @@ export default function PlayfieldLayout({ session }: PlayfieldLayoutProps) {
   } = usePlayfield();
 
   //When the strategy start button from the Playbook is clicked
-  const handleStrategyClick = (strategy: LessonCards) => {
+  const handleStrategyClick = (strategy: PlaybookStrategies) => {
     startStrategy(strategy); //start the Playfield strategy
     setSidebarOpen(false);
   };
@@ -41,11 +43,15 @@ export default function PlayfieldLayout({ session }: PlayfieldLayoutProps) {
     expandPlayfield();
     setSidebarOpen(false);
   };
+
   useEffect(() => {
     if (!strategy) {
       reset();
     }
   }, [reset, strategy]);
+
+  // Check if current strategy is compiled
+  const isCompiled = strategy ? isCompiledActivity(strategy.slug) : false;
 
   return (
     <div className="p-10 h-full w-full flex">
@@ -98,7 +104,16 @@ export default function PlayfieldLayout({ session }: PlayfieldLayoutProps) {
             transition={{ duration: 0.5, ease: "easeInOut" }}
             className="flex  w-full h-full p-10 items-center flex-col justify-center gap-6"
           >
-            <PlayfieldExpanded />
+            {isCompiled ? (
+              <CompiledActivityErrorBoundary
+                activitySlug={strategy?.slug}
+                onReset={reset}
+              >
+                <PlayfieldExpanded />
+              </CompiledActivityErrorBoundary>
+            ) : (
+              <PlayfieldExpanded />
+            )}
             <ParticipantListView participants={participants} />
           </motion.div>
         )}

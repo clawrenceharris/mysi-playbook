@@ -69,7 +69,7 @@ export interface EmptyStateProps {
  */
 export function EmptyState({
   variant = "default",
-  title = "Nothing here yet.",
+  title = "Nothing here yet...",
   message: message = "There are no items to display at the moment.",
   icon,
   actionLabel,
@@ -120,33 +120,28 @@ export function EmptyState({
 
   const renderInline = () => (
     <div
-      className={cn("empty-state", "empty-state-inline", className)}
-      data-testid="empty-state"
+      className={cn(
+        "flex items-center gap-3 p-4 bg-secondary-foreground border w-full rounded-xl max-w-xl mx-auto",
+        className
+      )}
     >
-      <div className="flex items-center gap-3 p-4 bg-muted/30 border border-border rounded-lg">
-        {icon && icon}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">{title}</p>
-          {message && (
-            <p className="text-xs text-muted-foreground mt-1">{message}</p>
-          )}
-        </div>
-        {onAction && actionLabel && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAction}
-            className="flex-shrink-0"
-          >
-            {actionLabel}
-          </Button>
+      {icon && icon}
+      <div className="flex-1 min-w-0">
+        <p className="text-md font-medium text-foreground">{title}</p>
+        {message && (
+          <p className="text-xs text-muted-foreground mt-1">{message}</p>
         )}
       </div>
+      {onAction && actionLabel && (
+        <Button size="sm" onClick={onAction} className="flex-shrink-0">
+          {actionLabel}
+        </Button>
+      )}
     </div>
   );
 
   const renderCard = () => (
-    <Card className="space-y-3 min-w-md  m-auto top-[50%] left-[50%] translate-[-50%] absolute flex flex-col justify-center max-w-xl text-center">
+    <Card className="space-y-3 min-w-md shadow-none border m-auto top-[50%] left-[50%] translate-[-50%] absolute flex flex-col justify-center max-w-xl text-center">
       {icon && <div className="flex justify-center mb-4">{icon}</div>}
       <CardTitle className="text-xl">{title}</CardTitle>
       {message && <CardDescription>{message}</CardDescription>}

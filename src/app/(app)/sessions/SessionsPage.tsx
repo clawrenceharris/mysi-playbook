@@ -1,102 +1,124 @@
 "use client";
 
-import { CreateSessionForm, SessionCard } from "@/components/features/sessions";
-import { FormLayout } from "@/components/layouts";
-import { EmptyState, ErrorState, LoadingState } from "@/components/states";
-import {
-  CreateSessionInput,
-  createSessionSchema,
-} from "@/features/sessions/domain";
-import { useSessions } from "@/features/sessions/hooks";
-import { useModal } from "@/hooks";
+import { SessionCard, SessionFilters } from "@/components/features/sessions";
+import { EmptyState, ErrorState } from "@/components/states";
+import { Button, SearchBar, Skeleton } from "@/components/ui";
+import { useSessionFilters, useSessions } from "@/features/sessions/hooks";
+import { useSessionActions } from "@/features/sessions/hooks";
 import { useUser } from "@/providers";
-import {
-  getFormattedCurrentDateTime,
-  getFormattedCurrentTime,
-} from "@/utils/date-time";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
+import { useSessionSearch } from "@/features/sessions/hooks";
+import { cn } from "@/lib/utils";
 
 export default function SessionsPage() {
   const { user } = useUser();
-  const { sessions, addSession, refetch, isLoading, error } = useSessions(
-    user.id
-  );
-  const router = useRouter();
-  const {
-    modal: createSessionModal,
-    openModal: openSessionCreationModal,
-    closeModal: closeSessionCreationModal,
-  } = useModal({
-    title: "New Session",
-    description: "Create a new session",
-    hidesDescription: true,
-    children: (
-      <FormLayout<CreateSessionInput>
-        defaultValues={{
-          topic: "",
-          course_name: "",
-          description: "",
-          start_date: getFormattedCurrentDateTime(),
-          start_time: getFormattedCurrentTime(),
-        }}
-        isLoading={addSession.isPending}
-        resolver={zodResolver(createSessionSchema)}
-        onCancel={() => closeSessionCreationModal()}
-        onSuccess={() => closeSessionCreationModal()}
-        onSubmit={(data) => {
-          const { start_date, start_time, ...rest } = data; //exclude start date and time
+  const { isLoading, sessions, error } = useSessions(user.id);
+  const { createSession } = useSessionActions();
+  const { filters, setFilters, filteredSessions, availableCourses } =
+    useSessionFilters(Object.values(sessions));
 
-          const startDateTime = `${start_date.split("T")[0]}T${start_time}`;
-          addSession.mutateAsync({ ...rest, scheduled_start: startDateTime });
-          refetch();
-        }}
-      >
-        <CreateSessionForm />
-      </FormLayout>
-    ),
-  });
+  // Search
+  const sessionsSearch = useSessionSearch(Object.values(sessions));
+
+  const visibleSessions = sessionsSearch.hasSearched
+    ? filteredSessions.filter((pb) =>
+        sessionsSearch.results.some((r) => r.id === pb.id)
+      )
+    : filteredSessions;
 
   if (isLoading) {
-    return <LoadingState />;
-  }
-  if (error || !sessions) {
-    return (
-      <ErrorState
-        variant="card"
-        onRetry={router.refresh}
-        message="There was an error loading your sessions. Come back later and try again."
-      />
-    );
-  }
-  if (!sessions.length) {
     return (
       <>
-        {createSessionModal}
-        <EmptyState
-          variant="card"
-          className="text-white"
-          message="You don't have any sessions at the moment."
-          onAction={openSessionCreationModal}
-          actionLabel="Create Session"
-        />
+        <div className="header">
+          <Skeleton className="w-60 h-7 rounded-full" />
+          <Skeleton className="w-20 h-7 rounded-full" />
+        </div>
+
+        <div className="container">
+          <Skeleton className="w-full max-w-140 h-10 rounded-full" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-20 h-8 rounded-full" />
+            <Skeleton className="w-20 h-8 rounded-full" />
+            <Skeleton className="w-20 h-8 rounded-full" />
+
+            <Skeleton className="w-20 h-8 rounded-full" />
+          </div>
+          <div className="grid cols-auto grid-cols-2 md:grid-cols-3 gap-6 max-w-[500px] md:max-w-[750px] w-full">
+            <Skeleton className="h-50 w-full max-w-[250px] rounded-xl" />
+            <Skeleton className="h-50 w-full ma-w-[250px] rounded-xl" />
+            <Skeleton className="h-50 w-full max-w-[250px] rounded-xl" />
+            <Skeleton className="h-50 w-full  max-w-[250px] rounded-xl" />
+            <Skeleton className="h-50 w-full max-w-[250px] rounded-xl" />
+            <Skeleton className="h-50 w-full max-w-[250px] rounded-xl" />
+          </div>
+        </div>
       </>
     );
   }
-
+  if (error) {
+    return <ErrorState variant="card" />;
+  }
   return (
-    <main>
-      {createSessionModal}
+    <>
+      <header className="header">
+        <div className="header-top">
+          <h1>Sessions</h1>
+          <div className="flex gap-4 items-center">
+            <Button
+              className="bg-secondary-foreground hover:bg-muted"
+              variant="ghost"
+              onClick={() => createSession()}
+            >
+              <Plus />
+              Create Session
+            </Button>
+          </div>
+        </div>
+        <div className="header-bottom">
+          <SearchBar
+            value={sessionsSearch.query}
+            onChange={sessionsSearch.search}
+            onClear={sessionsSearch.clearResults}
+          />
+          <SessionFilters
+            filters={filters}
+            onFilterChange={setFilters}
+            availableCourses={availableCourses}
+          />
+        </div>
+      </header>
 
-      <div className="container py-30 ">
-        <h1 className="text-white">My Sessions</h1>
-
-        <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ">
-          {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
+      <div className="container pt-6">
+        <div
+          className={cn(
+            "rounded-xl overflow-auto",
+            visibleSessions.length > 0 ? "faded-col" : ""
+          )}
+        >
+          {visibleSessions.length === 0 ? (
+            <div className="h-full max-h-20 m-auto">
+              <EmptyState
+                variant="inline"
+                message="No sessions match your search or filters."
+                actionLabel={
+                  sessionsSearch.hasSearched ? "Clear Search" : "Clear Filters"
+                }
+                className="border-none"
+                onAction={() => {
+                  if (sessionsSearch.hasSearched) sessionsSearch.clearResults();
+                  else setFilters({});
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid py-7 justify-items-center grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-4">
+              {visibleSessions.map((session) => (
+                <SessionCard key={session.id} session={session} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </main>
+    </>
   );
 }

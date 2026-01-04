@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { playbooksService } from "../domain/playbooks.service";
-import { LessonCardsUpdate } from "@/types/tables";
+import { playbooksService } from "../domain/playbook.service";
+import { PlaybookStrategies, PlaybookStrategiesUpdate } from "@/types/tables";
 
-export function usePlaybook(playbookId: string | null | undefined) {
+export function usePlaybook(playbookId?: string) {
   const queryClient = useQueryClient();
 
   const playbookQuery = useQuery({
@@ -13,17 +13,22 @@ export function usePlaybook(playbookId: string | null | undefined) {
     },
     enabled: !!playbookId,
   });
-
-  const updateStrategySteps = useMutation({
-    mutationFn: async (vars: { strategyId: string; steps: string[] }) =>
-      await playbooksService.updateStrategySteps(vars.strategyId, vars.steps),
+  const updatePlaybookStrategy = useMutation({
+    mutationFn: async (vars: {
+      strategyId: string;
+      data: PlaybookStrategiesUpdate;
+    }) => playbooksService.updatePlaybookStrategy(vars.strategyId, vars.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playbook", playbookId] });
     },
+    onError: (error) => {
+      console.error("Failed to update playbook strategy:", error);
+    },
   });
-  const updatePlaybookStrategy = useMutation({
-    mutationFn: async (vars: { strategyId: string; data: LessonCardsUpdate }) =>
-      playbooksService.updatePlaybookStrategy(vars.strategyId, vars.data),
+
+  const deletePlaybook = useMutation({
+    mutationFn: async (playbookId: string) =>
+      playbooksService.deletePlaybook(playbookId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playbook", playbookId] });
     },
@@ -31,7 +36,7 @@ export function usePlaybook(playbookId: string | null | undefined) {
   const reorderStrategies = useMutation({
     mutationFn: async (vars: {
       playbookId: string;
-      strategies: { id: string; position: number }[];
+      strategies: { id: string; phase: PlaybookStrategies["phase"] }[];
     }) => playbooksService.reorderStrategies(vars.strategies),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playbook", playbookId] });
@@ -42,13 +47,13 @@ export function usePlaybook(playbookId: string | null | undefined) {
     playbook: playbookQuery.data,
     isLoading: playbookQuery.isLoading,
     error: playbookQuery.error,
-    updatePlaybookStrategy: updatePlaybookStrategy,
-    updateStrategySteps: updateStrategySteps.mutateAsync,
+    deletePlaybook: deletePlaybook.mutateAsync,
+    isDeleting: deletePlaybook.isPending,
+    updatePlaybookStrategy: updatePlaybookStrategy.mutateAsync,
     isUpdating:
       updatePlaybookStrategy.isPending ||
       updatePlaybookStrategy.isPending ||
-      reorderStrategies.isPending ||
-      updateStrategySteps.isPending,
+      reorderStrategies.isPending,
     reorderStrategies: reorderStrategies.mutateAsync,
     refetch: playbookQuery.refetch,
   };

@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "TypeScript Validation & Linting",
+  "description": "Automatically runs type checking and linting on saved TypeScript files (excluding test files), fixes any errors found, and reports validation results",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "**/*.ts",
+      "**/*.tsx",
+      "!**/*.test.*",
+      "!**/*.spec.*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A TypeScript file has been saved. Please perform the following validation and fixes:\n\n1. Run TypeScript type checking on the file to identify type errors\n2. Check for missing or incorrect imports\n3. Verify the file compiles without errors\n4. Run ESLint to identify linting errors\n5. Fix any errors found to ensure the file compiles properly\n6. Report the validation results including:\n   - Any type errors found and fixed\n   - Any import issues resolved\n   - Any linting errors corrected\n   - Confirmation that the file now compiles successfully\n\nIf no errors are found, confirm that the file passes all validation checks."
+  }
+}

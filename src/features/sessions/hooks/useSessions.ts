@@ -1,46 +1,57 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sessionsService } from "../domain";
-import { SessionsInsert, SessionsUpdate } from "@/types/tables";
+import { Sessions, SessionsInsert, SessionsUpdate } from "@/types/tables";
+import { useUser } from "@/providers";
 
-export function useSessions(userId?: string | null) {
+export function useSessions(sessionId?: string | null) {
   const queryClient = useQueryClient();
-
+  const { user } = useUser();
   const sessionsQuery = useQuery({
-    queryKey: ["sessions", userId],
+    queryKey: ["sessions", user.id],
     queryFn: async () => {
-      if (userId) return await sessionsService.getAllByUser(userId);
+      const sessions = await sessionsService.getAllByUser(user.id);
+      return sessions.reduce((acc, session) => {
+        acc[session.id] = session;
+        return acc;
+      }, {} as { [sessionId: string]: Sessions });
     },
-    enabled: !!userId,
+    enabled: !!user.id,
   });
 
-  const addSession = useMutation({
+  const createSession = useMutation({
     mutationFn: async (data: SessionsInsert) =>
       await sessionsService.addSession(data),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["sessions", userId] }),
+      queryClient.invalidateQueries({ queryKey: ["sessions", user.id] }),
   });
 
   const updateSession = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: SessionsUpdate }) =>
-      await sessionsService.updateSession(id, data),
+    mutationFn: async (vars: { sessionId: string; data: SessionsUpdate }) => {
+      const { sessionId, data } = vars;
+      return await sessionsService.updateSession(sessionId, data);
+    },
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["sessions", userId] }),
+      queryClient.invalidateQueries({ queryKey: ["sessions", user.id] }),
   });
 
   const deleteSession = useMutation({
     mutationFn: async (id: string) => await sessionsService.deleteSession(id),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["sessions", userId] }),
+      queryClient.invalidateQueries({ queryKey: ["sessions", user.id] }),
   });
 
   return {
+    sessions: sessionsQuery.data || {},
+
+    refetch: sessionsQuery.refetch,
+    isDeleting: deleteSession.isPending,
+    isCreating: createSession.isPending,
+    isUpdating: updateSession.isPending,
     isLoading: sessionsQuery.isLoading,
     error: sessionsQuery.error,
-    sessions: sessionsQuery.data,
-    refetch: sessionsQuery.refetch,
 
-    addSession,
-    updateSession,
-    deleteSession,
+    createSession: createSession.mutateAsync,
+    updateSession: updateSession.mutateAsync,
+    deleteSession: deleteSession.mutateAsync,
   };
 }

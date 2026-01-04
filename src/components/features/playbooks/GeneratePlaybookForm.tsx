@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormLayout, FormLayoutProps } from "@/components/layouts/FormLayout";
+import { FormLayout, FormLayoutProps } from "@/components/form/form-layout";
 import { Input } from "@/components/ui/input";
 import {
   FormField,
@@ -12,22 +12,22 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Toggle } from "@/components/ui";
-import { StudentContexts } from "@/types/tables";
 import {
   GeneratePlaybookInput,
   generatePlaybookSchema,
 } from "@/features/playbooks/domain";
 import { supabase } from "@/lib/supabase/client";
 import { LoadingState } from "@/components/states";
+import { SessionContexts } from "@/types/tables";
 
-export default function GeneratePlaybookForm({
+export const GeneratePlaybookForm = ({
   ...props
-}: FormLayoutProps<GeneratePlaybookInput>) {
-  const [contexts, setContexts] = useState<StudentContexts[]>([]);
+}: FormLayoutProps<GeneratePlaybookInput>) => {
+  const [contexts, setContexts] = useState<SessionContexts[]>([]);
   const [contextsLoading, setContextsLoading] = useState(true);
   useEffect(() => {
     const fetchContexts = async () => {
-      const { data } = await supabase.from("student_contexts").select();
+      const { data } = await supabase.from("session_contexts").select();
       setContextsLoading(false);
       setContexts(data || []);
     };
@@ -35,6 +35,7 @@ export default function GeneratePlaybookForm({
   }, []);
   return (
     <FormLayout<GeneratePlaybookInput>
+      className="bg-primary-foreground shadow-md p-6 rounded-xl"
       resolver={zodResolver(generatePlaybookSchema)}
       defaultValues={{
         course_name: "",
@@ -128,4 +129,4 @@ export default function GeneratePlaybookForm({
       )}
     </FormLayout>
   );
-}
+};

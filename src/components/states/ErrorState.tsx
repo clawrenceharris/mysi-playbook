@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { cn } from "@/lib/utils";
 import {
   Button,
   Card,
@@ -10,13 +9,21 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
 } from "@/components/ui";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 /**
  * Available variants for error display
  */
-export type ErrorVariant = "default" | "minimal" | "card" | "inline";
+export type ErrorVariant = "item" | "card" | "page";
 
 /**
  * Props for the ErrorState component
@@ -76,13 +83,12 @@ export interface ErrorStateProps {
  * @returns An error display component with optional retry functionality
  */
 export function ErrorState({
-  variant = "default",
+  variant = "page",
   title = "Something went wrong.",
-  message = "Sorry, something's not working here. Come back later and try again.",
+  message = "Sorry, something broke. Come back later and try again.",
   icon,
   onRetry,
   retryLabel = "Try Again",
-  action,
   className,
   showIcon = true,
 }: ErrorStateProps) {
@@ -104,132 +110,67 @@ export function ErrorState({
     </svg>
   );
 
-  const renderMinimal = () => (
-    <div
-      className={cn("error-state", "error-state-minimal", className)}
-      data-testid="error-state"
-    >
-      <div className="flex items-center gap-2 text-destructive">
-        {showIcon &&
-          (icon || (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          ))}
-        <span className="text-sm font-medium">{title}</span>
-        {action
-          ? action
-          : onRetry && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRetry}
-                className="h-auto p-1 text-xs"
-              >
-                {retryLabel}
-              </Button>
-            )}
-      </div>
-    </div>
-  );
-
-  const renderInline = () => (
-    <div
-      className={cn("error-state", "error-state-inline", className)}
-      data-testid="error-state"
-    >
-      <div className="flex items-center gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-        {showIcon &&
-          (icon || (
-            <svg
-              className="w-5 h-5 text-destructive flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01"
-              />
-            </svg>
-          ))}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-destructive">{title}</p>
-          {message && <p className="text-xs text-white mt-1">{message}</p>}
-        </div>
-        {onRetry && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            className="flex-shrink-0"
-          >
-            {retryLabel}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-
   const renderCard = () => (
-    <Card className="space-y-3 m-auto top-[50%] left-[50%] translate-[-50%] absolute flex flex-col justify-center max-w-md min-w-sm text-center">
+    <Card
+      className={cn(
+        "m-auto max-w-md min-w-sm text-center shadow-none border-2",
+        className
+      )}
+    >
       <CardHeader>
-        <CardTitle className="text-2xl">Something went wrong.</CardTitle>
+        <Image
+          width={510}
+          height={510}
+          className="w-full max-w-[200px] mx-auto"
+          alt="Sad Notebook"
+          src="/images/error.png"
+        />
       </CardHeader>
       <CardContent>
+        <CardTitle className="text-2xl">Something went wrong...</CardTitle>
+
         <CardDescription>{message}</CardDescription>
       </CardContent>
-
       <CardFooter className="gap-4 justify-end">
         {onRetry && (
           <Button onClick={onRetry} variant="outline">
             {retryLabel}
           </Button>
         )}
-        <Button onClick={router.refresh} variant="primary">
+        <Button onClick={() => router.refresh()} variant="primary">
           Refresh
         </Button>
       </CardFooter>
     </Card>
   );
 
-  const renderDefault = () => (
-    <div
-      className={cn("error-state", "error-state-default", className)}
-      data-testid="error-state"
-    >
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        {showIcon && <div className="mb-4">{icon || defaultIcon}</div>}
-        <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-        {message && <p className="text-white mb-6 max-w-md">{message}</p>}
-        {onRetry && <Button onClick={onRetry}>{retryLabel}</Button>}
-      </div>
-    </div>
+  const renderItem = () => (
+    <Item className={className}>
+      <ItemContent>
+        {showIcon && <ItemMedia>{icon || defaultIcon}</ItemMedia>}
+        <ItemTitle>{title}</ItemTitle>
+        {message && <ItemDescription>{message}</ItemDescription>}
+        {onRetry && (
+          <ItemActions>
+            <Button onClick={onRetry}>{retryLabel}</Button>
+          </ItemActions>
+        )}
+      </ItemContent>
+    </Item>
+  );
+  const renderPage = () => (
+    <main className="flex w-screen justify-center">{renderCard()}</main>
   );
 
   const renderVariant = () => {
     switch (variant) {
-      case "minimal":
-        return renderMinimal();
-      case "inline":
-        return renderInline();
       case "card":
         return renderCard();
-      case "default":
+      case "item":
+        return renderItem();
+      case "page":
       default:
-        return renderDefault();
+        return renderPage();
     }
   };
 

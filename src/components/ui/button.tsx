@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva("btn", {
   variants: {
     variant: {
+      default: "btn",
       primary: "btn-primary",
       destructive: "btn-destructive",
       tertiary: "btn-tertiary",
@@ -14,13 +15,13 @@ const buttonVariants = cva("btn", {
       ghost: "btn-ghost",
       muted: "btn-muted",
 
-      link: "",
+      link: "text-foreground bg-transparent",
     },
     size: {
       default: "h-9 px-4 py-2",
       sm: "h-8 rounded-full px-3 text-xs",
       lg: "h-10 rounded-full px-8",
-      icon: "min-h-9 min-w-9",
+      icon: "size-10 min-w-10 min-h-10 p-0 rounded-full",
     },
   },
   defaultVariants: {

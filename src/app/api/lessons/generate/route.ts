@@ -3,11 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai/client";
 
 import {} from "@/types";
-import { LessonCards, LessonsInsert, Strategies } from "@/types/tables";
+import {
+  PlaybookStrategies,
+  PlaybooksInsert,
+  Strategies,
+} from "@/types/tables";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
-  const { topic, course_name, contexts, virtual = false } = await req.json();
+  const { topic, course_name, contexts } = await req.json();
 
   const client = await createClient();
   const {
@@ -79,23 +83,22 @@ ${catalog
   });
 
   const choice = JSON.parse(resp.choices[0].message?.content ?? "{}") as {
-    cards: { slug: string; phase: LessonCards["phase"] }[];
+    cards: { slug: string; phase: PlaybookStrategies["phase"] }[];
   };
 
   // Create the playbook
   const { data: playbook, error: le } = await client
-    .from("lessons")
-    .insert<LessonsInsert>({
+    .from("playbooks")
+    .insert<PlaybooksInsert>({
       owner: user.id,
       topic,
       course_name,
-      virtual,
     })
     .select()
     .single();
   if (le) return NextResponse.json({ error: le.message }, { status: 500 });
 
-  // Rehydrates selected cards from database and copy steps into lesson_cards with editable copies
+  // Rehydrates selected cards from database and copy steps into playbook_strategies with editable copies
   const slugs = choice.cards.map((c) => c.slug);
   const { data: fullCards, error: ce } = await client
     .from("strategies")
@@ -103,22 +106,19 @@ ${catalog
     .in("slug", slugs);
   if (ce) return NextResponse.json({ error: ce.message }, { status: 500 });
 
-  const orderMap = { warmup: 0, workout: 1, closer: 2 } as const;
-
   const rows = choice.cards.map((sel) => {
     const c = fullCards.find((fc) => fc.slug === sel.slug)!;
     return {
-      lesson_id: playbook.id,
+      playbook_id: playbook.id,
       card_slug: c.slug,
       title: c.title,
       category: c.category,
       steps: c.steps,
       phase: sel.phase,
-      position: orderMap[sel.phase],
-    } as LessonCards;
+    } as unknown as PlaybookStrategies;
   });
 
-  const { error: li } = await client.from("lesson_cards").insert(rows);
+  const { error: li } = await client.from("playbook_strategies").insert(rows);
   if (li) return NextResponse.json({ error: li.message }, { status: 500 });
 
   return NextResponse.json({ playbookId: playbook.id }, { status: 200 });

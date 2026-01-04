@@ -1,23 +1,30 @@
+import React from "react";
 import { Brain, Dumbbell, Lightbulb } from "lucide-react";
+import { PlaybookStrategies } from "@/types/tables";
 
-export const getCardBackgroundColor = (position: number) => {
-  switch (position) {
-    case 0:
+export const getCardBackgroundColor = (phase: PlaybookStrategies["phase"]) => {
+  switch (phase) {
+    case "warmup":
       return "bg-success-500";
-    case 1:
+    case "workout":
       return "bg-secondary-500";
-    case 2:
+    case "closer":
       return "bg-accent-400";
+    default:
+      return "bg-success-500";
   }
 };
 
-export const getCardIcon = (position: number) => {
-  switch (position) {
-    case 0:
+export const getCardIcon = (phase: PlaybookStrategies["phase"]) => {
+  switch (phase) {
+    case "warmup":
       return <Brain />;
-    case 1:
+    case "workout":
       return <Dumbbell />;
-    default:
+    case "closer":
       return <Lightbulb />;
+
+    default:
+      return <Brain />;
   }
 };

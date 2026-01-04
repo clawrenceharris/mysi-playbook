@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "TypeScript Any Type Checker",
+  "description": "Monitors TypeScript and TSX files for explicit 'any' type usage and suggests better type alternatives from custom types or installed packages, or adds eslint-disable directives when no better type exists",
+  "version": "1",
+  "when": {
+    "type": "userTriggered",
+    "patterns": [
+      "**/*.ts",
+      "**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the saved TypeScript file for explicit 'any' type usage. For each occurrence:\n\n1. Analyze the context and determine if a better type can be used:\n   - Check if a custom type exists in the project that would be more appropriate\n   - Check if an installed package provides a suitable type\n   - Consider using utility types (Partial, Pick, Omit, etc.) or union types\n   - Consider using 'unknown' instead of 'any' for better type safety\n\n2. If a better type exists:\n   - Replace the 'any' type with the more specific type\n   - Add necessary imports if using types from other files or packages\n   - Ensure the change doesn't break existing functionality\n\n3. If no better type can be determined:\n   - Count the total occurrences of 'any' in the file\n   - If there are 3 or fewer occurrences: add `// eslint-disable-next-line @typescript-eslint/no-explicit-any` above each line\n   - If there are more than 3 occurrences: add `/* eslint-disable @typescript-eslint/no-explicit-any */` at the top of the file\n\n4. Only if a change has been made then provide a summary of changes made and reasoning for each decision\n\nFocus on improving type safety while maintaining code functionality."
+  }
+}

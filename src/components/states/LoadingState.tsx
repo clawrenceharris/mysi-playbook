@@ -10,7 +10,7 @@ export function LoadingState({
 }) {
   if (variant === "page") {
     return (
-      <div className="h-screen text-primary-300 flex items-center justify-center">
+      <div className="h-screen w-screen text-primary-300 flex items-center justify-center">
         <Loader2 size={size} className="animate-spin" />
       </div>
     );

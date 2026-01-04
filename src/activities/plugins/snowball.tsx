@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, Textarea } from "@/components/ui";
-import { PlaybookContext, PlaybookDefinition } from "@/types/playbook";
+import { PlayfieldContext, PlayfieldDefinition } from "@/types/playbook";
 import { CircleQuestionMark } from "lucide-react";
 
 function SnowballCard({ onClick }: { onClick: () => void }) {
@@ -18,7 +18,7 @@ function SnowballCard({ onClick }: { onClick: () => void }) {
 // -----------------------------
 // Participant UI
 // -----------------------------
-function SnowballUI({ ctx }: { ctx: PlaybookContext }) {
+function SnowballUI({ ctx }: { ctx: PlayfieldContext }) {
   const phase = ctx.state.phase || "write";
   const pool = ctx.state.pool || {};
   const chosen = ctx.state.chosen || {};
@@ -113,7 +113,7 @@ function SnowballUI({ ctx }: { ctx: PlaybookContext }) {
 // -----------------------------
 // Host Controls
 // -----------------------------
-function SnowballHostControls({ ctx }: { ctx: PlaybookContext }) {
+function SnowballHostControls({ ctx }: { ctx: PlayfieldContext }) {
   const phase = ctx.state.phase || "write";
 
   if (phase === "write") {
@@ -150,12 +150,15 @@ function SnowballHostControls({ ctx }: { ctx: PlaybookContext }) {
 // -----------------------------
 // Definition
 // -----------------------------
-export const SnowballActivity: PlaybookDefinition = {
+export const SnowballActivity: PlayfieldDefinition = {
   slug: "snowball",
   title: "Snowball",
   phases: ["write", "pick", "discuss"],
-  start(ctx: PlaybookContext) {
-    ctx.call.sendCustomEvent({ type: "snowball:start", slug: "pass-problem" });
+  start(ctx: PlayfieldContext) {
+    ctx.call.sendCustomEvent({
+      type: "snowball:start",
+      slug: "pass-problem",
+    });
     ctx.setState({ phase: "write", teamSteps: {} });
   },
   handleEvent(e, ctx) {

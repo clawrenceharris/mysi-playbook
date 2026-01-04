@@ -6,7 +6,8 @@ import {
   Tooltip,
   TooltipContent,
 } from "@/components/ui";
-import { useModal } from "@/hooks";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { getUserErrorMessage } from "@/utils";
 import { useCallStateHooks } from "@stream-io/video-react-sdk";
 import {
@@ -18,12 +19,9 @@ import {
   MoreHorizontal,
   Notebook,
 } from "lucide-react";
-import { toast } from "sonner";
-import AudioVolumeIndicator from "./AudioVolumeIndicator";
-import { cn } from "@/lib/utils";
+import { AudioVolumeIndicator, BreakoutCreator } from ".";
 import { TooltipTrigger } from "@radix-ui/react-tooltip";
-import { useSessionCall } from "@/providers";
-import { BreakoutCreator } from "./BreakoutCreator";
+import { useSessionCall, useModal } from "@/providers";
 
 interface CustomCallControlsProps {
   onPlaybookClick: () => void;
@@ -42,21 +40,25 @@ export default function CustomCallControls({
   const { session } = useSessionCall();
 
   const createdBy = useCallCreatedBy();
-  const { modal, openModal, closeModal } = useModal({
-    title: "Create Breakout Rooms",
-    description:
-      "Ener the group size to divide breakout rooms assignements. There may be one rooms with uneven number of participants.",
-    hidesDescription: true,
-    children: (
-      <BreakoutCreator
-        onClose={() => closeModal}
-        participants={call.state.remoteParticipants.filter(
-          (p) => p.userId !== createdBy?.id
-        )}
-      />
-    ),
-  });
-
+  const {
+    openModal: openBreakoutRoomsModal,
+    closeModal: closeBreakoutRoomsModal,
+  } = useModal();
+  const handleCreateBreakoutRooms = () => {
+    openBreakoutRoomsModal({
+      title: "Create Breakout Rooms",
+      description:
+        "Ener the group size to divide breakout rooms assignements. There may be one rooms with uneven number of participants.",
+      children: (
+        <BreakoutCreator
+          onClose={() => closeBreakoutRoomsModal}
+          participants={call.state.remoteParticipants.filter(
+            (p) => p.userId !== createdBy?.id
+          )}
+        />
+      ),
+    });
+  };
   const handleMicClick = async () => {
     try {
       if (micState.isEnabled) call.microphone.disable();
@@ -98,7 +100,6 @@ export default function CustomCallControls({
   };
   return (
     <div className="px-6 pt-5 pb-3 fixed shadow-black/20 bottom-0 left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 bg-background rounded-t-xl">
-      {modal}
       <button
         className={cn(
           "btn-muted",
@@ -169,7 +170,7 @@ export default function CustomCallControls({
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {!call.state.custom.rooms?.length ? (
-              <DropdownMenuItem onClick={openModal}>
+              <DropdownMenuItem onClick={handleCreateBreakoutRooms}>
                 Create Breakout rooms
               </DropdownMenuItem>
             ) : (

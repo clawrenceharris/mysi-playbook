@@ -11,8 +11,7 @@ import { X, AlertCircle, Loader2 } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { Strategies } from "@/types/tables";
-import { useStrategySearch } from "@/hooks/useStrategySearch";
-import { StrategyCard } from "./";
+import { useStrategySearch } from "@/features/strategies/hooks";
 
 export interface StrategySearchFieldProps
   extends InputHTMLAttributes<HTMLInputElement> {
@@ -20,11 +19,11 @@ export interface StrategySearchFieldProps
   selectedStrategy: Strategies | null;
 }
 
-export default function StrategySearchField({
+export const StrategySearchField = ({
   onStrategySelect,
   selectedStrategy,
   ...props
-}: StrategySearchFieldProps) {
+}: StrategySearchFieldProps) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
@@ -111,8 +110,7 @@ export default function StrategySearchField({
           }
         }}
         className={cn(
-          "pl-10 pr-10",
-          selectedStrategy?.id && "border-accent/50 bg-accent/5"
+          selectedStrategy?.id && "border-primary-300 bg-primary-50"
         )}
         aria-expanded={showDropdown ? "true" : "false"}
         aria-haspopup="listbox"
@@ -175,13 +173,13 @@ export default function StrategySearchField({
           {!isLoading && !error && results.length > 0 && (
             <div className="py-1">
               {results.map((result) => (
-                <StrategyCard
-                  showsSteps={false}
-                  strategy={result}
+                <div
                   key={result.id}
-                  selected={selectedStrategy?.id === result.id}
+                  className="flex-1 cursor-pointer p-4 relative rounded-md border bg-primary-foreground hover:bg-muted"
                   onClick={() => handleMediaSelect(result)}
-                />
+                >
+                  <span>{result.title}</span>
+                </div>
               ))}
             </div>
           )}
@@ -189,4 +187,4 @@ export default function StrategySearchField({
       )}
     </div>
   );
-}
+};

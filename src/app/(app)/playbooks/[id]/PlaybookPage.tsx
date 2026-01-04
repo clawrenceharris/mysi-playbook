@@ -1,5 +1,14 @@
 "use client";
-import { Button } from "@/components/ui";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Skeleton,
+} from "@/components/ui";
 import {
   DndContext,
   closestCenter,
@@ -14,177 +23,132 @@ import {
   rectSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { ErrorState, LoadingState } from "@/components/states";
-import { usePlaybook } from "@/features/playbooks/hooks/usePlaybook";
+import { ErrorState } from "@/components/states";
 
-import { useEffect, useMemo, useState } from "react";
 import {
   restrictToFirstScrollableAncestor,
   restrictToWindowEdges,
 } from "@dnd-kit/modifiers";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { LessonCards, Strategies } from "@/types/tables";
 
-import { useSessions } from "@/features/sessions/hooks";
-import { useUser } from "@/providers";
-import { CreateSessionInput } from "@/features/sessions/domain";
-import { FormLayout } from "@/components/layouts";
-import { useModal } from "@/hooks";
-import { useRouter } from "next/navigation";
 import moment from "moment";
-import { CreateSessionForm } from "@/components/features/sessions";
 import {
   CardGhost,
   SortableStrategyCard,
-  StrategySelectionForm,
 } from "@/components/features/strategies";
-import { Check } from "lucide-react";
+import { Check, MoreVertical, Plus } from "lucide-react";
+import {
+  usePlaybook,
+  usePlaybookActions,
+  usePlaybookState,
+} from "@/features/playbooks/hooks";
+import { PlaybookStrategies } from "@/types";
+import { useSessionActions } from "@/features/sessions/hooks";
+import { useStrategyActions, useStrategies } from "@/features/strategies/hooks";
+import { DeleteIcon, PlaybookIcon, PlusIcon } from "@/components/icons";
+const phaseOrder = { warmup: 0, workout: 1, closer: 2 };
+
 export default function PlaybookPage({ playbookId }: { playbookId: string }) {
-  const [strategies, setStrategies] = useState<LessonCards[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const { user } = useUser();
-  const { addSession, sessions } = useSessions(user.id);
-  const [selectedStrategy, setSelectedStrategy] = useState<LessonCards | null>(
-    null
+
+  const { createSession } = useSessionActions();
+  const { playbook, reorderStrategies, isLoading } = usePlaybook(playbookId);
+  const [strategies, setStrategies] = useState<PlaybookStrategies[]>([]);
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const { replaceStrategy, deletePlaybook, enhanceStrategy } =
+    usePlaybookActions(playbookId);
+  const { toggleSave } = useStrategyActions();
+  const { strategies: allStrategies } = useStrategies();
+
+  // Map playbook strategies to their base strategy IDs for save functionality
+  const strategyIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (allStrategies && strategies.length > 0) {
+      strategies.forEach((ps) => {
+        const baseStrategy = allStrategies.find((s) => s.slug === ps.slug);
+        if (baseStrategy) {
+          map.set(ps.id, baseStrategy.id);
+        }
+      });
+    }
+    return map;
+  }, [allStrategies, strategies]);
+
+  const getSavedStatus = useCallback(
+    (strategy: PlaybookStrategies) => {
+      const baseStrategyId = strategyIdMap.get(strategy.id);
+      if (!baseStrategyId) return false;
+      // We'd need to check saved status, but for now return false
+      // This could be enhanced with a query for saved strategies
+      return false;
+    },
+    [strategyIdMap]
   );
-  const {
-    refetch,
-    playbook,
-    isLoading,
-    updatePlaybookStrategy,
-    updateStrategySteps,
-    isUpdating,
-    reorderStrategies,
-  } = usePlaybook(playbookId);
+
+  const handleSaveStrategy = useCallback(
+    async (strategy: PlaybookStrategies) => {
+      const baseStrategyId = strategyIdMap.get(strategy.id);
+      if (!baseStrategyId) return;
+      const isSaved = getSavedStatus(strategy);
+      await toggleSave(baseStrategyId, isSaved);
+    },
+    [strategyIdMap, getSavedStatus, toggleSave]
+  );
+
+  const { lastUpdate, hasSession, isSaving } = usePlaybookState(playbookId);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
-
-  const [isSaving, setIsSaving] = useState(false);
-  const router = useRouter();
   useEffect(() => {
-    setStrategies(playbook?.strategies || []);
+    if (playbook) {
+      setStrategies(playbook.strategies);
+    }
   }, [playbook]);
-  const hasSession = useMemo(
-    () => sessions?.some((s) => s.lesson_id === playbookId),
-    [playbookId, sessions]
+  const sortedStrategies = useMemo(
+    () => strategies.sort((a, b) => phaseOrder[a.phase] - phaseOrder[b.phase]),
+    [strategies]
   );
-  const {
-    modal: sessionCreationModal,
-    openModal: openSessionCreationModal,
-    closeModal: closeSessionCreationModal,
-  } = useModal({
-    title: "Create Session",
-    description: "Create a session from this lesson plan",
-    hidesDescription: true,
-    children: (
-      <FormLayout<CreateSessionInput>
-        defaultValues={{
-          course_name: playbook?.course_name || "",
-          topic: playbook?.topic || "",
-        }}
-        onCancel={() => closeSessionCreationModal()}
-        isLoading={addSession.isPending}
-        onSubmit={(data) => handleSessionSubmit(data)}
-        onSuccess={() => {
-          closeSessionCreationModal();
-          router.push("/sessions");
-        }}
-      >
-        <CreateSessionForm />
-      </FormLayout>
-    ),
-  });
 
-  const {
-    modal: strategySelectionModal,
-    openModal: openStrategySelectionModal,
-    closeModal: closeStrategySelectionModal,
-  } = useModal({
-    title: "Strategy Select",
-    description: "Select a strategy to add in replacement",
-    hidesDescription: true,
-
-    children: (
-      <FormLayout<{ strategy: Strategies }>
-        onCancel={() => closeStrategySelectionModal()}
-        enableBeforeUnloadProtection={false}
-        submitButtonClassName="bg-gradient-to-r from-primary-400 to-secondary-500 hover:from-primary-400/90 hover:to-secondary-500/90 text-white border-0 shadow-md hover:shadow-xl transition-all duration-200"
-        showsCancelButton={false}
-        isLoading={updatePlaybookStrategy.isPending}
-        onSubmit={async (data) => {
-          if (selectedStrategy) {
-            const { description, category, steps, slug, title } = data.strategy;
-            await updatePlaybookStrategy.mutateAsync({
-              strategyId: selectedStrategy.id,
-              data: {
-                steps,
-                card_slug: slug,
-                title,
-                description,
-                category: category || undefined,
-              },
-            });
-          }
-
-          closeStrategySelectionModal();
-        }}
-      >
-        <StrategySelectionForm />
-      </FormLayout>
-    ),
-  });
-  const handleSessionSubmit = async (data: CreateSessionInput) => {
-    try {
-      const { start_date, start_time, ...rest } = data; //exclude start date and time
-
-      const startDate = `${start_date.split("T")[0]}T${start_time}`;
-      await addSession.mutateAsync({
-        ...rest,
-        lesson_id: playbookId,
-        scheduled_start: new Date(startDate).toISOString(),
-      });
-    } catch {}
-  };
-
-  const improve = async (id: string) => {
-    try {
-      await fetch("/api/cards/improve", {
-        method: "POST",
-        body: JSON.stringify({ lessonCardId: id }),
-      });
-      refetch();
-    } catch (error) {
-      console.error(
-        `An error occured." ${error instanceof Error ? error.message : ""}`
+  const handleReorderStrategies = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      const next = arrayMove(sortedStrategies, oldIndex, newIndex).map(
+        (c, i) => ({
+          ...c,
+          phase: Object.keys(phaseOrder)[i] as PlaybookStrategies["phase"],
+        })
       );
-    }
-  };
-  useEffect(() => {
-    if (isUpdating) setIsSaving(true);
-    if (!isUpdating) {
-      setTimeout(() => {
-        setIsSaving(false);
-      }, 900);
-    }
-  }, [isUpdating]);
-  const handleReplaceClick = (strategy: LessonCards) => {
-    setSelectedStrategy(strategy);
-    openStrategySelectionModal();
-  };
-  const lastUpdate = useMemo(() => {
-    if (!playbook) return null;
-    const lastUpdatedStrategy = playbook.strategies.find(
-      (s) =>
-        s.updated_at &&
-        playbook.updated_at &&
-        new Date(s.updated_at) > new Date(playbook.updated_at)
-    );
-    return lastUpdatedStrategy?.updated_at || playbook.updated_at;
-  }, [playbook]);
+      reorderStrategies({ playbookId, strategies: next });
+      setStrategies(next);
+    },
+    [sortedStrategies, reorderStrategies, playbookId]
+  );
+  if (isLoading) {
+    return (
+      <>
+        <header className="header flex-col z-99 md:items-start shadow-md justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-60 rounded-full" />
+            <Skeleton className="h-4 w-30 rounded-full" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-9 rounded-full" />
+            <Skeleton className="size-9 rounded-full" />
+          </div>
+        </header>
 
-  if (isLoading) return <LoadingState />;
+        <div className="container flex flex-col gap-4 mt-4 max-w-[1080px] mx-auto">
+          <div className="flex flex-col lg:flex-row gap-4  w-full ">
+            <Skeleton className="h-[400px] mx-auto w-full max-w-[380px] rounded-2xl" />
+            <Skeleton className="h-[400px] mx-auto w-full max-w-[380px] rounded-2xl" />
+            <Skeleton className="h-[400px] mx-auto w-full max-w-[380px] rounded-2xl" />
+          </div>
+        </div>
+      </>
+    );
+  }
+
   if (!playbook) {
     return (
       <ErrorState variant="card" message="This lesson could not be found." />
@@ -192,32 +156,65 @@ export default function PlaybookPage({ playbookId }: { playbookId: string }) {
   }
 
   return (
-    <main>
-      {sessionCreationModal}
-      {strategySelectionModal}
-      <div className="container">
-        <div className="flex flex-col items-start md:flex-row gap-6 bg-background p-6 rounded-xl shadow-md justify-between md:items-center">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-semibold gap-3 flex items-center">
-              Lesson: {playbook.topic}
-              {hasSession && (
-                <span className="text-success-500 rounded-full px-2 py-1 text-xs bg-success-100">
-                  <Check className="inline" size={15} /> Session Created{" "}
-                </span>
-              )}
-            </h1>
-            {lastUpdate && (
-              <p className="text-muted-foreground text-sm">
-                {isSaving
-                  ? "Saving..."
-                  : `Saved ${moment(lastUpdate)
-                      .fromNow()
-                      .replace("a few seconds ago", "just now")}`}
-              </p>
-            )}
+    <>
+      <header className="header flex-col items-start">
+        <div className="header-bottom space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="size-20 group rounded-sm flex items-center justify-center  [&_path]:stroke-muted-foreground bg-primary-foreground border ">
+              <PlaybookIcon className="group-hover:scale-[1.2] transition-all duration-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-semibold gap-3 flex items-center">
+                  {playbook.topic}
+                </h1>
+              </div>
+              <div className="flex gap-3 items-center">
+                {lastUpdate && (
+                  <p className="text-muted-foreground text-sm">
+                    {isSaving
+                      ? "Saving..."
+                      : `Saved ${moment(lastUpdate)
+                          .fromNow()
+                          .replace("a few seconds ago", "just now")}`}
+                  </p>
+                )}
+                {hasSession && (
+                  <span className="text-success-500 flex items-center gap-1 rounded-full pl-1 pr-2 py-1 text-xs bg-success-100">
+                    <Check
+                      size={15}
+                      className="p-0.5 bg-success-500 text-white border-white  rounded-full"
+                    />{" "}
+                    Session Created{" "}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <Button onClick={openSessionCreationModal}>Create Session</Button>
+          <div className="flex items-center gap-3 justify-end">
+            <Button onClick={createSession}>
+              <Plus /> Create Session
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="outline" onClick={deletePlaybook}>
+                  <MoreVertical />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <PlusIcon /> Publish
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive">
+                  <DeleteIcon /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+      </header>
+      <div className="container">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -235,14 +232,7 @@ export default function PlaybookPage({ playbookId }: { playbookId: string }) {
             if (!over || active.id === over.id) return;
             const oldIndex = strategies.findIndex((c) => c.id === active.id);
             const newIndex = strategies.findIndex((c) => c.id === over.id);
-            const next = arrayMove(strategies, oldIndex, newIndex).map(
-              (c, i) => ({
-                ...c,
-                position: i,
-              })
-            );
-            reorderStrategies({ playbookId: playbook.id, strategies: next });
-            setStrategies(next);
+            handleReorderStrategies(oldIndex, newIndex);
           }}
           onDragCancel={() => {
             document.body.style.overscrollBehavior = "";
@@ -256,19 +246,15 @@ export default function PlaybookPage({ playbookId }: { playbookId: string }) {
               isMobile ? verticalListSortingStrategy : rectSortingStrategy
             }
           >
-            <ul className=" grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-md lg:max-w-7xl m-auto">
-              {strategies.map((s) => (
+            <ul className="flex flex-col xl:flex-row gap-6  w-full  mx-auto">
+              {sortedStrategies.map((strategy) => (
                 <SortableStrategyCard
-                  onReplaceClick={() => handleReplaceClick(s)}
-                  key={s.id}
-                  onCardStepsUpdate={(steps) =>
-                    updateStrategySteps({
-                      strategyId: s.id,
-                      steps,
-                    })
-                  }
-                  onImproveClick={async () => await improve(s.id)}
-                  strategy={s}
+                  onReplaceClick={() => replaceStrategy(strategy)}
+                  key={strategy.id}
+                  onEnhanceClick={async () => enhanceStrategy(strategy.id)}
+                  onSaveClick={() => handleSaveStrategy(strategy)}
+                  isSaved={getSavedStatus(strategy)}
+                  strategy={strategy}
                 />
               ))}
             </ul>
@@ -278,12 +264,12 @@ export default function PlaybookPage({ playbookId }: { playbookId: string }) {
           <DragOverlay dropAnimation={{ duration: 150 }}>
             {activeId ? (
               <CardGhost
-                position={strategies.find((c) => c.id === activeId)!.position}
+                phase={strategies.find((c) => c.id === activeId)!.phase}
               />
             ) : null}
           </DragOverlay>
         </DndContext>
       </div>
-    </main>
+    </>
   );
 }

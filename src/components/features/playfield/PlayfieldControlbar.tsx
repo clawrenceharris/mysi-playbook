@@ -1,8 +1,8 @@
 import { usePlaybook } from "@/features/playbooks/hooks";
-import { PlaybookDefinition } from "@/types/playbook";
+import { PlayfieldDefinition } from "@/types/playbook";
 import { useMemo } from "react";
 import { LoadingState } from "@/components/states";
-import { LessonCards, Sessions } from "@/types/tables";
+import { PlaybookStrategies, Sessions } from "@/types/tables";
 import { Button } from "@/components/ui";
 import { getCardBackgroundColor, getCardIcon } from "@/utils";
 import { cn } from "@/lib/utils";
@@ -11,27 +11,23 @@ import { usePlayfield } from "@/providers";
 import { useStreamCall } from "@/hooks";
 
 interface PlayfieldPreviewProps {
-  strategyDef: PlaybookDefinition;
+  strategyDef: PlayfieldDefinition;
   session: Sessions;
   onJoin: () => void;
   onLeave: () => void;
   onEnd: () => void;
 }
 
-function StrategyInfo({ strategy }: { strategy: LessonCards }) {
+function StrategyInfo({ strategy }: { strategy: PlaybookStrategies }) {
   return (
     <div className="flex items-center gap-2 md:gap-4 w-full">
-      <div className="icon-ghost mr-1">{getCardIcon(strategy.position)}</div>
+      <div className="icon-ghost mr-1">{getCardIcon(strategy.phase)}</div>
       <div className="w-full">
         <h2 className="font-bold text-xl">{strategy.title} </h2>
 
         <div className="flex items-center  justify-between">
           <span className="uppercase font-light text-background/70 text-sm">
-            {strategy.position === 0
-              ? "warmup"
-              : strategy.position === 1
-              ? "workout"
-              : "closer"}
+            {strategy.phase}
           </span>
         </div>
       </div>
@@ -46,9 +42,9 @@ export default function PlayfieldControlbar({
   onLeave,
   onEnd,
 }: PlayfieldPreviewProps) {
-  const { playbook, isLoading } = usePlaybook(session.lesson_id);
+  const { playbook, isLoading } = usePlaybook(session.playbook_id);
   const strategy = useMemo(
-    () => playbook?.strategies.find((s) => s.card_slug === strategyDef.slug),
+    () => playbook?.strategies.find((s) => s.slug === strategyDef.slug),
     [playbook?.strategies, strategyDef.slug]
   );
   const {
@@ -63,7 +59,7 @@ export default function PlayfieldControlbar({
         className={cn(
           "center-all",
           "fixed z-999  top-25 left-0 text-background py-4 px-1 md:px-5 shadow-black/20 flex-1 shadow-md rounded-r-2xl gap-6 hover:shadow-lg transition-shadow duration-200",
-          getCardBackgroundColor(strategy.position)
+          getCardBackgroundColor(strategy.phase)
         )}
       >
         <Button
@@ -95,7 +91,7 @@ export default function PlayfieldControlbar({
       className={cn(
         "center-all",
         "flex fixed z-999 top-3 md:top-5 left-0 text-background  p-2 md:px-5 shadow-black/20 flex-1 shadow-md rounded-r-2xl justify-between  items-center gap-8 hover:shadow-lg transition-shadow duration-200",
-        getCardBackgroundColor(strategy.position)
+        getCardBackgroundColor(strategy.phase)
       )}
     >
       <StrategyInfo strategy={strategy} />

@@ -11,7 +11,7 @@ import {
   TabsTrigger,
 } from "@/components/ui";
 import { usePlaybook } from "@/features/playbooks/hooks";
-import { LessonCards, Sessions } from "@/types/tables";
+import { PlaybookStrategies, Sessions } from "@/types/tables";
 import { VirtualStrategyCard } from "../strategies";
 import { useStreamCall } from "@/hooks";
 import { registry } from "@/activities/registry";
@@ -22,7 +22,7 @@ interface PlayfieldSidebarProps {
   open: boolean;
   activeTab: string;
   onOpenChange: (open: boolean) => void;
-  onStrategyClick: (strategy: LessonCards) => void;
+  onStrategyClick: (strategy: PlaybookStrategies) => void;
 }
 export default function PlayfieldSidebar({
   session,
@@ -33,7 +33,7 @@ export default function PlayfieldSidebar({
   activeTab,
 }: PlayfieldSidebarProps) {
   const { playbook, isLoading: loadingLesson } = usePlaybook(
-    session?.lesson_id
+    session?.playbook_id
   );
   const call = useStreamCall();
   const isHost = call.isCreatedByMe;
@@ -75,12 +75,12 @@ export default function PlayfieldSidebar({
                       <VirtualStrategyCard
                         strategy={s}
                         description={
-                          s.card_slug in registry
+                          s.slug in registry
                             ? "This strategy is set up for Playfield"
                             : undefined
                         }
                         actionLabel={
-                          s.card_slug in registry && isHost
+                          s.slug in registry && isHost
                             ? "Queue Strategy"
                             : undefined
                         }

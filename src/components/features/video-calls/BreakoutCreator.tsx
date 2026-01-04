@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { FormLayout, FormLayoutProps } from "@/components/layouts";
+import { FormLayout, FormLayoutProps } from "@/components/form";
 import {
   FormControl,
   FormField,

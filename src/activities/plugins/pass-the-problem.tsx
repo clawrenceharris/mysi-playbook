@@ -1,9 +1,9 @@
 import { Button, Textarea } from "@/components/ui";
-import { PlaybookContext, PlaybookDefinition } from "@/types/playbook";
+import { PlayfieldContext, PlayfieldDefinition } from "@/types/playbook";
 import { CustomVideoEvent } from "@stream-io/video-react-sdk";
 import { useState } from "react";
 
-function PassTheProblemUI({ ctx }: { ctx: PlaybookContext }) {
+function PassTheProblemUI({ ctx }: { ctx: PlayfieldContext }) {
   const phase = ctx.state.phase || "setup";
   const [answer, setAnswer] = useState("");
   const step = ctx.state.currentStep;
@@ -68,7 +68,7 @@ function PassTheProblemUI({ ctx }: { ctx: PlaybookContext }) {
   return null;
 }
 
-function PassTheProblemHostControls({ ctx }: { ctx: PlaybookContext }) {
+function PassTheProblemHostControls({ ctx }: { ctx: PlayfieldContext }) {
   const phase = ctx.state.phase || "setup";
 
   const { currentStep, problem } = ctx.state;
@@ -107,7 +107,7 @@ function PassTheProblemHostControls({ ctx }: { ctx: PlaybookContext }) {
   return null;
 }
 
-export const PassTheProblemActivity: PlaybookDefinition = {
+export const PassTheProblemActivity: PlayfieldDefinition = {
   slug: "pass-the-problem",
   title: "Pass the Problem",
   phases: ["setup", "step", "review"],
@@ -125,7 +125,7 @@ export const PassTheProblemActivity: PlaybookDefinition = {
     });
   },
 
-  handleEvent(e: CustomVideoEvent, ctx: PlaybookContext) {
+  handleEvent(e: CustomVideoEvent, ctx: PlayfieldContext) {
     const data = e.custom;
     if (!data) return;
 

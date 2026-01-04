@@ -14,7 +14,12 @@ export abstract class BaseRepository<TDomain> {
       .eq("id", id)
       .single();
 
-    if (error || !data) throw error;
+    if (error) {
+      if (error.code === "PGRST116") {
+        return null; // Not found
+      }
+      throw error;
+    }
     return data;
   }
 
@@ -83,15 +88,16 @@ export abstract class BaseRepository<TDomain> {
 
     if (error) throw error;
   }
-  async getAllBy(
+  async getAllBy<T>(
     column: string,
     value: string,
     tableName?: string
-  ): Promise<TDomain[]> {
+  ): Promise<T[]> {
     const { data, error } = await this.client
       .from(tableName || this.tableName)
       .select()
-      .eq(column, value);
+      .eq(column, value)
+      .order("created_at", { ascending: true });
     if (error) {
       throw error;
     }

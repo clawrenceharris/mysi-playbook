@@ -1,5 +1,4 @@
 import { normalizeError } from "@/utils/error";
-
 import { Profiles, ProfilesInsert, ProfilesUpdate } from "@/types/tables";
 import { ProfilesRepository } from "../data";
 import { AppErrorCode } from "@/types/errors";
@@ -7,13 +6,10 @@ import { supabase } from "@/lib/supabase/client";
 
 /**
  * Service layer for profile business logic
- *
+ * Handles user profile CRUD operations with error handling
  */
-class ProfileService {
-  private repository: ProfilesRepository;
-  constructor() {
-    this.repository = new ProfilesRepository(supabase);
-  }
+export class ProfileService {
+  constructor(private repository: ProfilesRepository) {}
 
   /**
    * Create a new user profile
@@ -46,14 +42,15 @@ class ProfileService {
    */
   async updateProfile(userId: string, data: ProfilesUpdate): Promise<Profiles> {
     try {
-      const updateResult = await this.repository.update(userId, data);
-
-      return updateResult;
+      return await this.repository.update(userId, data);
     } catch (error) {
       throw normalizeError(error);
     }
   }
 
+  /**
+   * Check if a profile exists for a user ID
+   */
   async profileExists(userId: string): Promise<boolean> {
     try {
       return await this.repository.existsById(userId);
@@ -74,4 +71,17 @@ class ProfileService {
   }
 }
 
-export const profileService = new ProfileService();
+/**
+ * Factory function to create a ProfileService instance
+ * Enables dependency injection for testing
+ */
+export function createProfileService(
+  repository: ProfilesRepository = new ProfilesRepository(supabase)
+): ProfileService {
+  return new ProfileService(repository);
+}
+
+/**
+ * Singleton instance for backward compatibility
+ */
+export const profileService = createProfileService();

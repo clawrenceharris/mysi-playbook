@@ -64,7 +64,7 @@ function NoCallState({ onCreate }: { onCreate: () => void }) {
 }
 function SessionCallProvider({ children, session }: SessionCallProviderProps) {
   const client = useStreamVideoClient();
-  const { updateSession } = useSessions(session.instructor);
+  const { updateSession } = useSessions(session.leader_id);
   const { user } = useAuth();
   const [mainCall, setMainCall] = useState<Call | null>(null);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
@@ -202,7 +202,12 @@ function SessionCallProvider({ children, session }: SessionCallProviderProps) {
               role: "admin",
             },
           ],
-          custom: { topic, description, course_name },
+          custom: {
+            topic,
+            description,
+            course_name,
+            title: `${course_name ? course_name + ":" : ""} ${topic}`,
+          },
         },
       });
 
@@ -226,20 +231,22 @@ function SessionCallProvider({ children, session }: SessionCallProviderProps) {
 
   if (!activeCall || !mainCall) {
     return (
-      <NoCallState
-        onCreate={async () => {
-          try {
-            const call = await createNewCall();
-            updateSession.mutate({
-              id: session.id,
-              data: { call_id: call?.id || null },
-            });
-          } catch (error) {
-            console.error(error);
-            toast("Could not create call");
-          }
-        }}
-      />
+      <main>
+        <NoCallState
+          onCreate={async () => {
+            try {
+              const call = await createNewCall();
+              updateSession.mutate({
+                id: session.id,
+                data: { call_id: call?.id || null },
+              });
+            } catch (error) {
+              console.error(error);
+              toast("Could not create call");
+            }
+          }}
+        />
+      </main>
     );
   }
 
@@ -402,7 +409,9 @@ function useBreakoutRooms(
           await newCall.getOrCreate({
             data: {
               custom: {
+                course_name: mainCall.state.custom.title,
                 mainCall: mainCall.id,
+
                 breakoutIndex: index + 1,
                 members: members.map((m) => m.userId),
               },

@@ -71,11 +71,11 @@ export default function PlayfieldExpanded() {
           <div
             className={cn(
               `relative w-full flex text-background items-center p-5 gap-3 rounded-tl-2xl rounded-tr-2xl`,
-              `${getCardBackgroundColor(ctx.position)}`
+              `${getCardBackgroundColor(ctx.phase)}`
             )}
           >
             <div className="min-w-[40px] min-h-[40px] bg-foreground/20 rounded-full flex items-center justify-center">
-              {getCardIcon(ctx.position)}
+              {getCardIcon(ctx.phase)}
             </div>
 
             <div className="w-full">
@@ -84,11 +84,7 @@ export default function PlayfieldExpanded() {
               </div>
               <div className="flex items-center  justify-between">
                 <span className="uppercase font-light text-background/70 text-sm">
-                  {ctx.position === 0
-                    ? "warmup"
-                    : ctx.position === 1
-                    ? "workout"
-                    : "closer"}
+                  {ctx.phase}
                 </span>
               </div>
             </div>

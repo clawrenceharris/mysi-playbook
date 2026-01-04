@@ -1,24 +1,35 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Call, CustomVideoEvent } from "@stream-io/video-react-sdk";
+import { PlaybookStrategies } from "./tables";
 
-export interface VirtualPlaybookContext extends PlaybookContext {
+/**
+ * Slide-scoped data structure for a single slide
+ */
+
+export interface StrategyState {
+  phase: string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+export interface VirtualPlaybookContext extends PlayfieldContext {
   call: Call;
 }
-export interface PlaybookContext {
+export interface PlayfieldContext {
   call: Call;
   userId: string;
-  state: Record<string, any>;
-  setState: (next: Record<string, any>) => void;
+  state: StrategyState;
+  setState: (next: StrategyState) => void;
   isHost: boolean;
   slug: string;
-  position: number;
+  phase: PlaybookStrategies["phase"];
+  mockParticipants?: import("@/features/playground/domain/distribution-engine.types").Participant[];
 }
-export interface PlaybookDefinition {
+export interface PlayfieldDefinition {
   slug: string;
   title: string;
   phases: string[];
-  start: (ctx: PlaybookContext) => void;
-  handleEvent: (event: CustomVideoEvent, ctx: PlaybookContext) => void;
-  Component: React.FC<{ ctx: PlaybookContext }>;
-  HostControls: React.FC<{ ctx: PlaybookContext }>;
+  start: (ctx: PlayfieldContext) => void;
+  handleEvent: (event: CustomVideoEvent, ctx: PlayfieldContext) => void;
+  Component: React.FC<{ ctx: PlayfieldContext }>;
+  HostControls: React.FC<{ ctx: PlayfieldContext }>;
 }

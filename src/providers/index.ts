@@ -7,3 +7,5 @@ export {
   useSessionCall,
   type BreakoutRoom,
 } from "./SessionCallProvider";
+export { PlaygroundProvider, usePlayground } from "./PlaygroundProvider";
+export { ModalProvider, useModal } from "./ModalContext";

@@ -15,17 +15,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { data: lesson, error: le } = await client
-    .from("lessons")
+    .from("playbooks")
     .select("id, topic, mode")
     .eq("id", playbookId)
     .single();
   if (le) return NextResponse.json({ error: le.message }, { status: 500 });
 
   const { data: cards, error: ce } = await client
-    .from("lesson_cards")
-    .select("id,title,phase,steps,position")
-    .eq("lesson_id", playbookId)
-    .order("position");
+    .from("playbook_strategies")
+    .select("id,title,phase,steps,phase")
+    .eq("playbook_id", playbookId);
   if (ce) return NextResponse.json({ error: ce.message }, { status: 500 });
 
   const sys = `Adapt each card's steps for a fully virtual (Zoom) session.
@@ -55,9 +54,15 @@ Return JSON: { "cards": [ { "id": string, "steps": string[] } ] } (same ids).`;
 
   // batch update
   for (const c of out.cards) {
-    await client.from("lesson_cards").update({ steps: c.steps }).eq("id", c.id);
+    await client
+      .from("playbook_strategies")
+      .update({ steps: c.steps })
+      .eq("id", c.id);
   }
-  await client.from("lessons").update({ mode: "virtual" }).eq("id", playbookId);
+  await client
+    .from("playbooks")
+    .update({ mode: "virtual" })
+    .eq("id", playbookId);
 
   return NextResponse.json({ ok: true });
 }
